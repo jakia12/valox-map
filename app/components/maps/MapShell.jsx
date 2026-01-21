@@ -4,21 +4,7 @@ import { geoAlbersUsa, geoPath } from "d3-geo";
 import { useEffect, useMemo, useState } from "react";
 import { feature } from "topojson-client";
 
-// Tiny states shown as boxes
-const CALLOUT = new Set(["NH", "MA", "CT", "VT", "NJ", "RI", "DE", "MD", "DC"]);
-const CALLOUT_BOXES = [
-  { code: "NH", x: 885, y: 210 },
-  { code: "MA", x: 885, y: 250 },
-  { code: "CT", x: 935, y: 250 },
-  { code: "VT", x: 835, y: 290 },
-  { code: "NJ", x: 885, y: 290 },
-  { code: "RI", x: 935, y: 290 },
-  { code: "DC", x: 835, y: 330 },
-  { code: "DE", x: 885, y: 330 },
-  { code: "MD", x: 935, y: 330 },
-];
-
-// FIPS -> USPS (keep yours)
+// FIPS -> USPS
 const FIPS_TO_USPS = {
   "01": "AL",
   "02": "AK",
@@ -145,12 +131,8 @@ function cleanCountyName(n) {
 }
 
 /**
- * ✅ MULTI-STATE TERRITORIES
- * Each entry is a “territory/region” = multiple counties.
- * You will keep expanding these lists.
- *
- * NOTE: I filled the obvious ones with best-guess counties.
- * For “regional” labels (South Bay, First Coast, Northern VA) you may tweak.
+ * TERRITORIES (your data)
+ * Each territory = list of counties. Expand anytime.
  */
 const TERRITORIES_BY_STATE = {
   TX: [
@@ -185,7 +167,6 @@ const TERRITORIES_BY_STATE = {
       counties: ["Tarrant", "Parker", "Johnson", "Wise", "Hood"],
     },
   ],
-
   CA: [
     {
       key: "CA_SAN_DIEGO",
@@ -205,15 +186,12 @@ const TERRITORIES_BY_STATE = {
       color: "#EF4444",
       counties: ["Los Angeles"],
     },
-    // South Bay is a region; common county mapping is Santa Clara (Silicon Valley / South Bay)
     {
       key: "CA_SOUTH_BAY",
       label: "South Bay",
       color: "#22C55E",
       counties: ["Santa Clara"],
     },
-    // "Howard" is not CA; leaving as placeholder (remove or correct)
-    // { key: "CA_HOWARD", label: "Howard", color: "#A855F7", counties: ["Howard"] },
     {
       key: "CA_SACRAMENTO",
       label: "Sacramento",
@@ -221,9 +199,7 @@ const TERRITORIES_BY_STATE = {
       counties: ["Sacramento"],
     },
   ],
-
   MN: [
-    // Minneapolis is mainly Hennepin; often Ramsey is “St. Paul”
     {
       key: "MN_MINNEAPOLIS",
       label: "Minneapolis",
@@ -231,7 +207,6 @@ const TERRITORIES_BY_STATE = {
       counties: ["Hennepin"],
     },
   ],
-
   IA: [
     {
       key: "IA_DES_MOINES",
@@ -240,7 +215,6 @@ const TERRITORIES_BY_STATE = {
       counties: ["Polk"],
     },
   ],
-
   MO: [
     {
       key: "MO_KANSAS_CITY",
@@ -255,7 +229,6 @@ const TERRITORIES_BY_STATE = {
       counties: ["St. Louis", "St. Louis City", "St Charles", "Jefferson"],
     },
   ],
-
   MI: [
     {
       key: "MI_DETROIT",
@@ -270,7 +243,6 @@ const TERRITORIES_BY_STATE = {
       counties: ["Genesee"],
     },
   ],
-
   AL: [
     {
       key: "AL_DOTHAN",
@@ -279,7 +251,6 @@ const TERRITORIES_BY_STATE = {
       counties: ["Houston"],
     },
   ],
-
   FL: [
     {
       key: "FL_PENSACOLA",
@@ -287,21 +258,18 @@ const TERRITORIES_BY_STATE = {
       color: "#2563EB",
       counties: ["Escambia"],
     },
-    // First Coast ~ Duval + St Johns + Nassau + Clay
     {
       key: "FL_FIRST_COAST",
       label: "First Coast",
       color: "#F97316",
       counties: ["Duval", "St Johns", "Nassau", "Clay"],
     },
-    // Deland / Daytona Beach ~ Volusia
     {
       key: "FL_DELAND_DAYTONA",
       label: "DeLand–Daytona",
       color: "#22C55E",
       counties: ["Volusia"],
     },
-    // Orlando ~ Orange + Seminole + Osceola (common)
     {
       key: "FL_ORLANDO",
       label: "Orlando",
@@ -326,7 +294,6 @@ const TERRITORIES_BY_STATE = {
       color: "#84CC16",
       counties: ["Palm Beach"],
     },
-    // Miami–Fort Lauderdale ~ Miami-Dade + Broward
     {
       key: "FL_MIAMI_FTL",
       label: "Miami–Ft Lauderdale",
@@ -334,7 +301,6 @@ const TERRITORIES_BY_STATE = {
       counties: ["Miami-Dade", "Broward"],
     },
   ],
-
   GA: [
     {
       key: "GA_ATLANTA",
@@ -349,9 +315,7 @@ const TERRITORIES_BY_STATE = {
       counties: ["DeKalb"],
     },
   ],
-
   SC: [
-    // Aiken
     { key: "SC_AIKEN", label: "Aiken", color: "#2563EB", counties: ["Aiken"] },
     {
       key: "SC_ROCK_HILL",
@@ -360,9 +324,7 @@ const TERRITORIES_BY_STATE = {
       counties: ["York"],
     },
   ],
-
   NC: [
-    // Raleigh–Durham ~ Wake + Durham + Orange
     {
       key: "NC_RDU",
       label: "Raleigh–Durham",
@@ -376,7 +338,6 @@ const TERRITORIES_BY_STATE = {
       counties: ["Mecklenburg"],
     },
   ],
-
   VA: [
     {
       key: "VA_RICHMOND",
@@ -384,7 +345,6 @@ const TERRITORIES_BY_STATE = {
       color: "#2563EB",
       counties: ["Henrico", "Chesterfield", "Richmond City"],
     },
-    // Northern VA ~ Fairfax + Arlington + Loudoun + Prince William
     {
       key: "VA_NORTHERN",
       label: "Northern VA",
@@ -392,7 +352,6 @@ const TERRITORIES_BY_STATE = {
       counties: ["Fairfax", "Arlington", "Loudoun", "Prince William"],
     },
   ],
-
   MD: [
     {
       key: "MD_ANNAPOLIS",
@@ -412,7 +371,6 @@ const TERRITORIES_BY_STATE = {
       color: "#22C55E",
       counties: ["Baltimore", "Baltimore City"],
     },
-    // “Maryland metro” (DC metro) ~ Montgomery + Prince George's
     {
       key: "MD_METRO",
       label: "Maryland Metro",
@@ -420,7 +378,6 @@ const TERRITORIES_BY_STATE = {
       counties: ["Montgomery", "Prince George's"],
     },
   ],
-
   IN: [
     {
       key: "IN_ANDERSON",
@@ -441,7 +398,6 @@ const TERRITORIES_BY_STATE = {
       counties: ["Johnson"],
     },
   ],
-
   OH: [
     {
       key: "OH_COLUMBUS",
@@ -450,7 +406,6 @@ const TERRITORIES_BY_STATE = {
       counties: ["Franklin", "Delaware", "Licking"],
     },
     { key: "OH_AKRON", label: "Akron", color: "#F97316", counties: ["Summit"] },
-    // Norwalk OH ~ Huron
     {
       key: "OH_NORWALK",
       label: "Norwalk",
@@ -464,7 +419,6 @@ const TERRITORIES_BY_STATE = {
       counties: ["Cuyahoga"],
     },
   ],
-
   PA: [
     {
       key: "PA_ALLENTOWN",
@@ -479,7 +433,6 @@ const TERRITORIES_BY_STATE = {
       counties: ["Philadelphia", "Delaware", "Montgomery", "Bucks", "Chester"],
     },
   ],
-
   NJ: [
     {
       key: "NJ_WOODBURY",
@@ -512,7 +465,6 @@ const TERRITORIES_BY_STATE = {
       counties: ["Morris"],
     },
   ],
-
   NY: [
     {
       key: "NY_YONKERS",
@@ -520,7 +472,6 @@ const TERRITORIES_BY_STATE = {
       color: "#2563EB",
       counties: ["Westchester"],
     },
-    // Long Island ~ Nassau + Suffolk
     {
       key: "NY_LONG_ISLAND",
       label: "Long Island",
@@ -528,7 +479,6 @@ const TERRITORIES_BY_STATE = {
       counties: ["Nassau", "Suffolk"],
     },
   ],
-
   MA: [
     {
       key: "MA_WORCESTER",
@@ -555,7 +505,6 @@ const TERRITORIES_BY_STATE = {
       counties: ["Bristol"],
     },
   ],
-
   AZ: [
     {
       key: "AZ_PHOENIX",
@@ -565,7 +514,6 @@ const TERRITORIES_BY_STATE = {
     },
     { key: "AZ_TUCSON", label: "Tucson", color: "#F97316", counties: ["Pima"] },
   ],
-
   CO: [
     {
       key: "CO_DENVER",
@@ -574,7 +522,6 @@ const TERRITORIES_BY_STATE = {
       counties: ["Denver", "Arapahoe", "Jefferson", "Adams"],
     },
   ],
-
   OR: [
     {
       key: "OR_PORTLAND",
@@ -583,7 +530,6 @@ const TERRITORIES_BY_STATE = {
       counties: ["Multnomah", "Washington", "Clackamas"],
     },
   ],
-
   WA: [
     {
       key: "WA_VANCOUVER",
@@ -623,8 +569,6 @@ export default function MapShell() {
   const [states, setStates] = useState([]);
   const [counties, setCounties] = useState([]);
   const [hoveredState, setHoveredState] = useState(null);
-
-  const [hoveredTerritoryKey, setHoveredTerritoryKey] = useState(null);
   const [hoverTooltip, setHoverTooltip] = useState(null);
 
   const width = 1000;
@@ -663,7 +607,7 @@ export default function MapShell() {
     [],
   );
 
-  // State fill theme (like your 2nd image)
+  // ✅ State fill theme: NO hover for gray states
   const fillForState = (stateFeature) => {
     const code = getStateCodeFromFeature(stateFeature);
     const stateFips = USPS_TO_FIPS[code];
@@ -671,9 +615,8 @@ export default function MapShell() {
       ? hasAnyCoverageForStateFips(stateFips, territoryIndex)
       : false;
 
-    // covered states dark, others light
-    const base = covered ? "#334155" : "#94A3B8";
-    return hoveredState === code ? "#4F46E5" : base;
+    if (!covered) return "#88A4BC"; // light gray (no hover)
+    return hoveredState === code ? "#3B729F" : "#334155"; // covered states hover
   };
 
   // Determine territory for a county feature
@@ -687,18 +630,8 @@ export default function MapShell() {
     return m.get(name) || null;
   };
 
-  const allTerritories = useMemo(() => {
-    return Object.entries(TERRITORIES_BY_STATE).flatMap(([state, list]) =>
-      list.map((t) => ({ ...t, state })),
-    );
-  }, []);
-
   return (
-    <div className="w-[87%] mx-auto max-w-8xl">
-      <div className="mb-3 text-sm text-slate-600">
-        USA states + multi-state territories
-      </div>
-
+    <div className="w-full">
       <div className="relative overflow-hidden bg-white">
         {/* Tooltip (HTML overlay) */}
         {hoverTooltip ? (
@@ -714,14 +647,9 @@ export default function MapShell() {
             <div className="font-semibold text-slate-900 text-sm">
               {hoverTooltip.title}
             </div>
-
-            {/* ✅ like your screenshot */}
-
             <div className="mt-0.5 font-medium text-slate-800 text-sm">
               Click for Details
             </div>
-
-            {/* optional small subtitle if you still want it */}
             {hoverTooltip.subtitle ? (
               <div className="mt-0.5 text-slate-600 text-sm">
                 {hoverTooltip.subtitle}
@@ -734,10 +662,14 @@ export default function MapShell() {
           {/* ===== 1) States ===== */}
           {states.map((f, idx) => {
             const code = getStateCodeFromFeature(f);
-            if (CALLOUT.has(code)) return null;
 
             const d = path ? path(f) : "";
             if (!d) return null;
+
+            const stateFips = USPS_TO_FIPS[code];
+            const isCovered =
+              stateFips &&
+              hasAnyCoverageForStateFips(stateFips, territoryIndex);
 
             return (
               <path
@@ -746,14 +678,18 @@ export default function MapShell() {
                 fill={fillForState(f)}
                 stroke="#ffffff"
                 strokeWidth={1.5}
-                className="cursor-pointer transition-colors duration-150"
-                onMouseEnter={() => setHoveredState(code)}
-                onMouseLeave={() => setHoveredState(null)}
+                className={isCovered ? "cursor-pointer" : "cursor-default"}
+                onMouseEnter={() => {
+                  if (isCovered) setHoveredState(code);
+                }}
+                onMouseLeave={() => {
+                  if (isCovered) setHoveredState(null);
+                }}
               />
             );
           })}
 
-          {/* ===== 2) Territory fills (counties that belong to a territory) ===== */}
+          {/* ===== 2) Territory fills (only counties that belong to a territory) ===== */}
           {path
             ? counties.map((c) => {
                 const id = getCountyId(c);
@@ -772,25 +708,32 @@ export default function MapShell() {
                     stroke="transparent"
                     className="cursor-pointer"
                     onMouseEnter={(e) => {
-                      setHoveredTerritoryKey(territory.key);
-
                       const rect =
                         e.currentTarget.ownerSVGElement?.getBoundingClientRect();
                       if (!rect) return;
 
                       const countyName = cleanCountyName(getCountyName(c));
+                      const stateFips = getCountyStateFips(c);
+                      const usps =
+                        stateFips &&
+                        FIPS_TO_USPS[String(stateFips).padStart(2, "0")]
+                          ? FIPS_TO_USPS[String(stateFips).padStart(2, "0")]
+                          : "";
+
                       setHoverTooltip({
                         x: e.clientX - rect.left,
                         y: e.clientY - rect.top,
-                        title: `${territory.label}`,
-                        subtitle: `${countyName} County • ${getCountyStateFips(c)}`,
+                        title: usps
+                          ? `${territory.label}, ${usps}`
+                          : territory.label,
+                        subtitle: countyName ? `${countyName} County` : "",
                       });
                     }}
                     onMouseMove={(e) => {
-                      if (!hoverTooltip) return;
                       const rect =
                         e.currentTarget.ownerSVGElement?.getBoundingClientRect();
                       if (!rect) return;
+
                       setHoverTooltip((t) =>
                         t
                           ? {
@@ -801,16 +744,13 @@ export default function MapShell() {
                           : t,
                       );
                     }}
-                    onMouseLeave={() => {
-                      setHoveredTerritoryKey(null);
-                      setHoverTooltip(null);
-                    }}
+                    onMouseLeave={() => setHoverTooltip(null)}
                   />
                 );
               })
             : null}
 
-          {/* ===== 3) ALL county borders (thin like your screenshot) ===== */}
+          {/* ===== 3) ALL county borders (thin) ===== */}
           {path
             ? counties.map((c) => {
                 const id = getCountyId(c);
@@ -823,8 +763,8 @@ export default function MapShell() {
                     d={d}
                     fill="transparent"
                     stroke="#0B1220"
-                    strokeWidth={0.55} // ✅ thinner line
-                    opacity={0.75} // ✅ softer like image
+                    strokeWidth={0.55}
+                    opacity={0.75}
                     pointerEvents="none"
                   />
                 );
@@ -834,7 +774,6 @@ export default function MapShell() {
           {/* ===== 4) State labels ===== */}
           {states.map((f, idx) => {
             const code = getStateCodeFromFeature(f);
-            if (CALLOUT.has(code)) return null;
 
             const d = path ? path(f) : "";
             if (!d) return null;
@@ -849,68 +788,13 @@ export default function MapShell() {
                 textAnchor="middle"
                 dominantBaseline="middle"
                 className="select-none fill-white font-semibold"
-                style={{ fontSize: 16, pointerEvents: "none", opacity: 0.9 }}
+                style={{ fontSize: 12, pointerEvents: "none", opacity: 0.9 }}
               >
                 {code}
               </text>
             );
           })}
-
-          {/* ===== 5) Callout boxes ===== */}
-          {CALLOUT_BOXES.map((b) => (
-            <g
-              key={b.code}
-              className="cursor-pointer"
-              onMouseEnter={() => setHoveredState(b.code)}
-              onMouseLeave={() => setHoveredState(null)}
-            >
-              <rect
-                x={b.x}
-                y={b.y}
-                width={44}
-                height={34}
-                rx={8}
-                fill={hoveredState === b.code ? "#4F46E5" : "#334155"}
-              />
-              <text
-                x={b.x + 22}
-                y={b.y + 17}
-                textAnchor="middle"
-                dominantBaseline="middle"
-                className="select-none fill-white font-semibold"
-                style={{ fontSize: 14, pointerEvents: "none", opacity: 0.95 }}
-              >
-                {b.code}
-              </text>
-            </g>
-          ))}
         </svg>
-
-        {/* ===== Legend (shows all territories) ===== */}
-        <div className="pointer-events-none absolute left-6 top-6 w-[280px] rounded-2xl bg-white/90 p-4 shadow-lg ring-1 ring-black/10 hidden">
-          <div className="text-sm font-semibold text-slate-900">
-            Territory Legend
-          </div>
-          <div className="mt-3 space-y-2">
-            {allTerritories.map((t) => (
-              <div
-                key={t.key}
-                className="flex items-center gap-2 text-sm text-slate-700"
-              >
-                <div
-                  className="h-3 w-3 rounded-sm"
-                  style={{ background: t.color }}
-                />
-                <span>
-                  {t.state}: {t.label}
-                </span>
-              </div>
-            ))}
-          </div>
-          <div className="mt-3 text-xs text-slate-500">
-            Edit lists in <code>TERRITORIES_BY_STATE</code>
-          </div>
-        </div>
       </div>
     </div>
   );
