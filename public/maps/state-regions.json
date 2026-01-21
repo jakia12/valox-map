@@ -1,0 +1,57 @@
+{
+  "48": {
+    "state": "Texas",
+    "regions": [
+      {
+        "name": "Austin, TX",
+        "slug": "austin",
+        "url": "https://veloxval.com/service-areas/texas/austin/"
+      },
+      {
+        "name": "San Antonio, TX",
+        "slug": "san-antonio",
+        "url": "https://veloxval.com/service-areas/texas/austin/"
+      },
+      {
+        "name": "Houston, TX",
+        "slug": "houston",
+        "url": "https://veloxval.com/service-areas/texas/austin/"
+      },
+      {
+        "name": "Fort Worth, TX",
+        "slug": "fort-worth",
+        "url": "https://veloxval.com/service-areas/texas/austin/"
+      },
+      {
+        "name": "Dallas, TX",
+        "slug": "dallas",
+        "url": "https://veloxval.com/service-areas/texas/austin/"
+      }
+    ]
+  },
+  "04": {
+    "state": "Arizona",
+    "regions": [
+      {
+        "name": "Phoenix, AZ",
+        "slug": "phoenix",
+        "url": "https://veloxval.com/service-areas/texas/austin/"
+      },
+      {
+        "name": "Tucson, AZ",
+        "slug": "tucson",
+        "url": "https://veloxval.com/service-areas/texas/austin/"
+      }
+    ]
+  },
+  "08": {
+    "state": "Colorado",
+    "regions": [
+      {
+        "name": "Denver, CO",
+        "slug": "denver",
+        "url": "https://veloxval.com/service-areas/texas/austin/"
+      }
+    ]
+  }
+}
