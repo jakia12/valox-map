@@ -554,14 +554,15 @@ function buildTerritoryIndex(territoriesByState) {
         m.set(String(c).trim().toLowerCase(), t);
       }
     }
-    byState.set(fips, m);
+    byState.set(String(fips).padStart(2, "0"), m);
   }
 
   return byState;
 }
 
 function hasAnyCoverageForStateFips(stateFips, territoryIndex) {
-  const m = territoryIndex.get(stateFips);
+  if (!stateFips) return false;
+  const m = territoryIndex.get(String(stateFips).padStart(2, "0"));
   return m && m.size > 0;
 }
 
@@ -612,7 +613,10 @@ export default function MapShell() {
     const code = getStateCodeFromFeature(stateFeature);
     const stateFips = USPS_TO_FIPS[code];
     const covered = stateFips
-      ? hasAnyCoverageForStateFips(stateFips, territoryIndex)
+      ? hasAnyCoverageForStateFips(
+          String(stateFips).padStart(2, "0"),
+          territoryIndex,
+        )
       : false;
 
     if (!covered) return "#88A4BC"; // light gray (no hover)
@@ -623,7 +627,8 @@ export default function MapShell() {
   const getTerritoryForCounty = (countyFeature) => {
     const stateFips = getCountyStateFips(countyFeature);
     if (!stateFips) return null;
-    const m = territoryIndex.get(stateFips);
+
+    const m = territoryIndex.get(String(stateFips).padStart(2, "0"));
     if (!m) return null;
 
     const name = cleanCountyName(getCountyName(countyFeature)).toLowerCase();
@@ -669,7 +674,10 @@ export default function MapShell() {
             const stateFips = USPS_TO_FIPS[code];
             const isCovered =
               stateFips &&
-              hasAnyCoverageForStateFips(stateFips, territoryIndex);
+              hasAnyCoverageForStateFips(
+                String(stateFips).padStart(2, "0"),
+                territoryIndex,
+              );
 
             return (
               <path
@@ -750,10 +758,16 @@ export default function MapShell() {
               })
             : null}
 
-          {/* ===== 3) ALL county borders (thin) ===== */}
-          {path
+          {/* ✅ ===== 3) County borders — ONLY for covered states (NOT gray states) ===== */}
+          {/* {path
             ? counties.map((c) => {
                 const id = getCountyId(c);
+                const stateFips = getCountyStateFips(c);
+
+                // IMPORTANT: skip borders for non-covered (gray) states
+                if (!hasAnyCoverageForStateFips(stateFips, territoryIndex))
+                  return null;
+
                 const d = path(c);
                 if (!d) return null;
 
@@ -769,7 +783,7 @@ export default function MapShell() {
                   />
                 );
               })
-            : null}
+            : null} */}
 
           {/* ===== 4) State labels ===== */}
           {states.map((f, idx) => {
