@@ -21,14 +21,6 @@ export default function Legend() {
           />
           <span className="text-slate-700">Franchise</span>
         </div>
-
-        <div className="flex items-center gap-1.5">
-          <span
-            className="h-2.5 w-2.5 rounded-sm"
-            style={{ background: COLORS.green }}
-          />
-          <span className="text-slate-700">Green</span>
-        </div>
       </div>
     </div>
   );
