@@ -1,6 +1,6 @@
 "use client";
 
-import { geoMercator, geoPath } from "d3-geo";
+import { geoAlbersUsa, geoPath } from "d3-geo";
 import { useEffect, useMemo, useState } from "react";
 import { feature } from "topojson-client";
 
@@ -22,6 +22,7 @@ function topoToFeaturesAuto(topo, preferContains) {
     names.find((n) =>
       n.toLowerCase().includes(String(preferContains).toLowerCase()),
     ) || names[0];
+
   const fc = feature(topo, topo.objects[chosen]);
   return fc.features || [];
 }
@@ -42,7 +43,7 @@ export default function StateTerritoryDetail({ stateCode, onBack }) {
       const countiesTopo = await loadJson("/maps/us-counties.topo.json");
       const allCounties = topoToFeaturesAuto(countiesTopo, "count");
 
-      const stateFips = USPS_TO_FIPS[stateCode];
+      const stateFips = String(USPS_TO_FIPS[stateCode]).padStart(2, "0");
       const filtered = allCounties.filter(
         (c) => String(getCountyStateFips(c)).padStart(2, "0") === stateFips,
       );
@@ -51,14 +52,15 @@ export default function StateTerritoryDetail({ stateCode, onBack }) {
     })().catch(console.error);
   }, [stateCode]);
 
+  // ✅ IMPORTANT: use Albers USA for states (fixes ugly stretched state map)
   const projection = useMemo(() => {
     if (!counties.length) return null;
 
-    return geoMercator().fitSize([width, height], {
+    return geoAlbersUsa().fitSize([width, height], {
       type: "FeatureCollection",
       features: counties,
     });
-  }, [counties]);
+  }, [counties, width, height]);
 
   const path = useMemo(
     () => (projection ? geoPath(projection) : null),
@@ -112,12 +114,7 @@ export default function StateTerritoryDetail({ stateCode, onBack }) {
                     : "#88A4BC";
 
                   return (
-                    <path
-                      key={`fill-${id}`}
-                      d={d}
-                      fill={fill}
-                      fillOpacity={0.95}
-                    />
+                    <path key={`fill-${id}`} d={d} fill={fill} opacity={0.95} />
                   );
                 })
               : null}
@@ -134,20 +131,20 @@ export default function StateTerritoryDetail({ stateCode, onBack }) {
                       key={`border-${id}`}
                       d={d}
                       fill="transparent"
-                      stroke="#ffffff"
-                      strokeWidth={1.2}
-                      opacity={0.95}
+                      stroke="rgba(255,255,255,0.9)"
+                      strokeWidth={1.1}
                       pointerEvents="none"
                     />
                   );
                 })
               : null}
 
-            {/* optional county labels (simple) */}
+            {/* county labels */}
             {path
               ? counties.map((c) => {
                   const d = path(c);
                   if (!d) return null;
+
                   const [x, y] = path.centroid(c);
                   const name = cleanCountyName(getCountyName(c));
                   if (!name) return null;
@@ -159,11 +156,12 @@ export default function StateTerritoryDetail({ stateCode, onBack }) {
                       y={y}
                       textAnchor="middle"
                       dominantBaseline="middle"
-                      className="select-none fill-white font-regular"
+                      className="select-none fill-white"
                       style={{
-                        fontSize: 7,
+                        fontSize: 11, // ✅ you asked ~11px
                         pointerEvents: "none",
                         opacity: 0.95,
+                        fontWeight: 500,
                       }}
                     >
                       {name}
@@ -183,10 +181,28 @@ export default function StateTerritoryDetail({ stateCode, onBack }) {
             Click “Back” to return to USA map.
           </div>
 
+          {/* ✅ Legend: ONLY TWO markers (Corporate + Franchise) */}
+          <div className="mt-3 flex items-center gap-3 text-[11px] text-slate-700">
+            <div className="flex items-center gap-1.5">
+              <span
+                className="h-2.5 w-2.5 rounded-full"
+                style={{ backgroundColor: "#F2AF58" }}
+              />
+              Corporate
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span
+                className="h-2.5 w-2.5 rounded-full"
+                style={{ backgroundColor: "#9B2E2E" }}
+              />
+              Franchise
+            </div>
+          </div>
+
           <div className="mt-3 space-y-2">
             {territoriesForState.length ? (
               territoriesForState.map((t) => {
-                const color = t.type === "FRANCHISE" ? "#9B2E2E" : "#F2AF58";
+                const color = territoryColor(t); // ✅ consistent
 
                 return (
                   <div
@@ -203,10 +219,8 @@ export default function StateTerritoryDetail({ stateCode, onBack }) {
                       </div>
                     </div>
 
-                    <div className="mt-1 text-[11px] text-slate-700">
-                      <span className="font-normal text-slate-600">
-                        Counties: {t.counties.join(", ")}
-                      </span>
+                    <div className="mt-1 text-[11px] text-slate-600">
+                      Counties: {t.counties.join(", ")}
                     </div>
                   </div>
                 );

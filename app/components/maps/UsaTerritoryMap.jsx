@@ -24,14 +24,40 @@ function topoToFeaturesAuto(topo, preferContains) {
     names.find((n) =>
       n.toLowerCase().includes(String(preferContains).toLowerCase()),
     ) || names[0];
+
   const fc = feature(topo, topo.objects[chosen]);
   return fc.features || [];
+}
+
+// Small helper: brighten hex color (for neon hover)
+function brightenHex(hex, amount = 0.22) {
+  // hex like "#RRGGBB"
+  const h = String(hex || "").replace("#", "");
+  if (h.length !== 6) return hex;
+
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+
+  const mix = (v) => Math.round(v + (255 - v) * amount);
+
+  const rr = mix(r).toString(16).padStart(2, "0");
+  const gg = mix(g).toString(16).padStart(2, "0");
+  const bb = mix(b).toString(16).padStart(2, "0");
+
+  return `#${rr}${gg}${bb}`;
 }
 
 export default function UsaTerritoryMap({ onSelectState }) {
   const [states, setStates] = useState([]);
   const [counties, setCounties] = useState([]);
+
   const [hoveredState, setHoveredState] = useState(null);
+
+  // ✅ territory hover (for neon inside shape)
+  const [hoveredTerritoryKey, setHoveredTerritoryKey] = useState(null);
+
+  // ✅ tooltip
   const [hoverTooltip, setHoverTooltip] = useState(null);
 
   const width = 1000;
@@ -54,8 +80,8 @@ export default function UsaTerritoryMap({ onSelectState }) {
     [],
   );
 
+  // ✅ remove AK from main map
   const filteredStates = useMemo(() => {
-    // ✅ remove AK from main map
     return states.filter((f) => getStateCodeFromFeature(f) !== "AK");
   }, [states]);
 
@@ -75,23 +101,39 @@ export default function UsaTerritoryMap({ onSelectState }) {
   const fillForState = (stateFeature) => {
     const code = getStateCodeFromFeature(stateFeature);
     const stateFips = USPS_TO_FIPS[code];
+
     const covered = stateFips
       ? hasAnyCoverageForStateFips(stateFips, territoryIndex)
       : false;
 
-    if (!covered) return "#88A4BC"; // gray state
-    return hoveredState === code ? "#3B729F" : "#334155"; // covered state
+    if (!covered) return "#88A4BC"; // light map states
+    return hoveredState === code ? "#3B729F" : "#334155"; // covered states
   };
 
   const getTerritoryForCounty = (countyFeature) => {
     const stateFips = getCountyStateFips(countyFeature);
     if (!stateFips) return null;
+
     const m = territoryIndex.get(String(stateFips).padStart(2, "0"));
     if (!m) return null;
 
     const name = cleanCountyName(getCountyName(countyFeature)).toLowerCase();
     return m.get(name) || null;
   };
+  function darkenHex(hex, amount = 0.2) {
+    const h = String(hex || "").replace("#", "");
+    if (h.length !== 6) return hex;
+
+    const r = parseInt(h.slice(0, 2), 16);
+    const g = parseInt(h.slice(2, 4), 16);
+    const b = parseInt(h.slice(4, 6), 16);
+
+    const mix = (v) => Math.round(v * (1 - amount));
+
+    return `#${mix(r).toString(16).padStart(2, "0")}${mix(g)
+      .toString(16)
+      .padStart(2, "0")}${mix(b).toString(16).padStart(2, "0")}`;
+  }
 
   return (
     <div className="w-full">
@@ -113,11 +155,6 @@ export default function UsaTerritoryMap({ onSelectState }) {
             <div className="mt-0.5 font-medium text-slate-800 text-sm">
               Click for Details
             </div>
-            {hoverTooltip.subtitle ? (
-              <div className="mt-0.5 text-slate-600 text-sm">
-                {hoverTooltip.subtitle}
-              </div>
-            ) : null}
           </div>
         ) : null}
 
@@ -154,7 +191,7 @@ export default function UsaTerritoryMap({ onSelectState }) {
             );
           })}
 
-          {/* 2) TERRITORY FILLS (with subtle separation stroke) */}
+          {/* 2) TERRITORY FILLS (NO county borders, no seams, neon inside hover) */}
           {path
             ? counties.map((c) => {
                 const id = getCountyId(c);
@@ -164,29 +201,49 @@ export default function UsaTerritoryMap({ onSelectState }) {
                 const territory = getTerritoryForCounty(c);
                 if (!territory) return null;
 
-                const color = territoryColor(territory);
+                // base color from your logic (should return #F2AF58 or #9B2E2E or #96CB91)
+                const base = territoryColor(territory) || territory.color;
+
+                const isHovered = hoveredTerritoryKey === territory.key;
+
+                // neon INSIDE region (no outside glow)
+
+                const neonFill = "#FACC15";
+                const neonStroke = "#FACC15";
 
                 return (
                   <path
                     key={`fill-${id}`}
                     d={d}
-                    fill={color}
-                    fillOpacity={0.95}
-                    stroke="rgba(255,255,255,0.65)" // ✅ subtle separation so same colors don’t merge
-                    strokeWidth={0.85}
+                    fill={isHovered ? neonFill : base}
+                    fillOpacity={isHovered ? 1 : 0.97}
+                    /*
+                      ✅ THIS removes the tiny seam lines:
+                      - stroke matches fill so edges "seal" together
+                      - strokeWidth is tiny but enough to cover anti-alias cracks
+                      - on hover, stroke becomes neon for a crisp highlighted edge
+                    */
+                    stroke={isHovered ? neonStroke : base}
+                    strokeWidth={isHovered ? 1.6 : 0.9}
                     strokeLinejoin="round"
+                    vectorEffect="non-scaling-stroke"
+                    shapeRendering="geometricPrecision"
                     className="cursor-pointer"
+                    style={{
+                      transition:
+                        "fill 140ms ease, stroke 140ms ease, stroke-width 140ms ease, opacity 140ms ease",
+                    }}
                     onMouseEnter={(e) => {
+                      setHoveredTerritoryKey(territory.key);
+
                       const rect =
                         e.currentTarget.ownerSVGElement?.getBoundingClientRect();
                       if (!rect) return;
 
-                      const countyName = cleanCountyName(getCountyName(c));
                       setHoverTooltip({
                         x: e.clientX - rect.left,
                         y: e.clientY - rect.top,
-                        title: territory.label,
-                        subtitle: countyName ? `${countyName} County` : "",
+                        title: `${territory.label} Area`,
                       });
                     }}
                     onMouseMove={(e) => {
@@ -204,7 +261,14 @@ export default function UsaTerritoryMap({ onSelectState }) {
                           : t,
                       );
                     }}
-                    onMouseLeave={() => setHoverTooltip(null)}
+                    onMouseLeave={() => {
+                      setHoveredTerritoryKey(null);
+                      setHoverTooltip(null);
+                    }}
+                    onClick={() => {
+                      // keep your existing behavior
+                      // e.g. open detail panel for that territory/state if you want
+                    }}
                   />
                 );
               })
