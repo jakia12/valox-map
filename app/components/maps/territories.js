@@ -213,6 +213,7 @@ export const TERRITORIES_BY_STATE = {
         "Jefferson",
         "Madison",
         "Taylor",
+        "Dixie",
       ],
     },
     {
