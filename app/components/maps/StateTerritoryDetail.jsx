@@ -114,7 +114,16 @@ export default function StateTerritoryDetail({ stateCode, onBack }) {
                     : "#88A4BC";
 
                   return (
-                    <path key={`fill-${id}`} d={d} fill={fill} opacity={0.95} />
+                    <path
+                      key={`fill-${id}`}
+                      d={d}
+                      fill={fill}
+                      opacity={0.95}
+                      stroke={fill}
+                      strokeWidth={0.8}
+                      strokeLinejoin="round"
+                      strokeLinecap="round"
+                    />
                   );
                 })
               : null}
@@ -133,6 +142,8 @@ export default function StateTerritoryDetail({ stateCode, onBack }) {
                       fill="transparent"
                       stroke="rgba(255,255,255,0.9)"
                       strokeWidth={1.1}
+                      strokeLinejoin="round"
+                      strokeLinecap="round"
                       pointerEvents="none"
                     />
                   );

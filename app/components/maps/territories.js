@@ -185,15 +185,13 @@ export const TERRITORIES_BY_STATE = {
     },
   ],
 
-  AL: [
-    { key: "AL_DOTHAN", label: "Dothan", type: "GREEN", counties: ["Houston"] },
-  ],
+  AL: [],
 
   FL: [
     {
       key: "FL_WIREGRASS_COAST",
       label: "Wiregrass Coast",
-      type: "CORPORATE",
+      type: "FRANCHISE",
       counties: [
         "Escambia",
         "Santa Rosa",
@@ -219,7 +217,7 @@ export const TERRITORIES_BY_STATE = {
     {
       key: "FL_ORLANDO_MIDSTATE",
       label: "Orlando Midstate",
-      type: "CORPORATE",
+      type: "FRANCHISE",
       counties: ["Lake", "Polk", "Orange", "Seminole", "Osceola"],
     },
     {
@@ -251,12 +249,6 @@ export const TERRITORIES_BY_STATE = {
       label: "Port St. Lucie",
       type: "CORPORATE",
       counties: ["St. Lucie"],
-    },
-    {
-      key: "FL_DELAND_DAYTONA",
-      label: "DeLand–Daytona",
-      type: "CORPORATE",
-      counties: ["Volusia"],
     },
   ],
 

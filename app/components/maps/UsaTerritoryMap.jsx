@@ -159,6 +159,40 @@ export default function UsaTerritoryMap({ onSelectState }) {
         ) : null}
 
         <svg viewBox={`0 0 ${width} ${height}`} className="h-auto w-full">
+          {/* SVG Filter for territory outlines */}
+          <defs>
+            <filter
+              id="territoryOutline"
+              x="-10%"
+              y="-10%"
+              width="120%"
+              height="120%"
+            >
+              <feMorphology
+                operator="dilate"
+                radius="5"
+                radius="1.2"
+                in="SourceAlpha"
+                result="expanded"
+              />
+              <feFlood
+                floodColor="#F8F4E8"
+                floodOpacity="0.9"
+                result="outlineColor"
+              />
+              <feComposite
+                in="outlineColor"
+                in2="expanded"
+                operator="in"
+                result="outline"
+              />
+              <feMerge>
+                <feMergeNode in="outline" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+
           {/* 1) STATES */}
           {filteredStates.map((f, idx) => {
             const code = getStateCodeFromFeature(f);
@@ -191,87 +225,104 @@ export default function UsaTerritoryMap({ onSelectState }) {
             );
           })}
 
-          {/* 2) TERRITORY FILLS (NO county borders, no seams, neon inside hover) */}
+          {/* 2) TERRITORY FILLS - Grouped by territory with unified outlines */}
           {path
-            ? counties.map((c) => {
-                const id = getCountyId(c);
-                const d = path(c);
-                if (!d) return null;
+            ? (() => {
+                // Group counties by territory
+                const territoryGroups = new Map();
 
-                const territory = getTerritoryForCounty(c);
-                if (!territory) return null;
+                counties.forEach((c) => {
+                  const territory = getTerritoryForCounty(c);
+                  if (!territory) return;
 
-                // base color from your logic (should return #F2AF58 or #9B2E2E or #96CB91)
-                const base = territoryColor(territory) || territory.color;
+                  if (!territoryGroups.has(territory.key)) {
+                    territoryGroups.set(territory.key, {
+                      territory,
+                      counties: [],
+                    });
+                  }
+                  territoryGroups.get(territory.key).counties.push(c);
+                });
 
-                const isHovered = hoveredTerritoryKey === territory.key;
+                // Render each territory as a group with unified outline
+                return Array.from(territoryGroups.values()).map(
+                  ({ territory, counties: terrCounties }) => {
+                    const base = territoryColor(territory) || territory.color;
+                    const isHovered = hoveredTerritoryKey === territory.key;
+                    const neonFill = "#FACC15";
+                    const maron = "#9B2E2E";
 
-                // neon INSIDE region (no outside glow)
+                    return (
+                      <g
+                        key={`territory-group-${territory.key}`}
+                        filter="url(#territoryOutline)"
+                        style={{ isolation: "isolate" }}
+                      >
+                        {terrCounties.map((c) => {
+                          const id = getCountyId(c);
+                          const d = path(c);
+                          if (!d) return null;
 
-                const neonFill = "#FACC15";
-                const neonStroke = "#FACC15";
+                          return (
+                            <path
+                              key={`fill-${id}`}
+                              d={d}
+                              fill={isHovered ? neonFill : base}
+                              fillOpacity={isHovered ? 1 : 0.97}
+                              stroke={maron}
+                              strokeWidth={0.0}
+                              strokeLinejoin="round"
+                              strokeLinecap="round"
+                              vectorEffect="non-scaling-stroke"
+                              shapeRendering="geometricPrecision"
+                              className="cursor-pointer"
+                              style={{
+                                transition:
+                                  "fill 140ms ease, opacity 140ms ease",
+                              }}
+                              onMouseEnter={(e) => {
+                                setHoveredTerritoryKey(territory.key);
 
-                return (
-                  <path
-                    key={`fill-${id}`}
-                    d={d}
-                    fill={isHovered ? neonFill : base}
-                    fillOpacity={isHovered ? 1 : 0.97}
-                    /*
-                      ✅ THIS removes the tiny seam lines:
-                      - stroke matches fill so edges "seal" together
-                      - strokeWidth is tiny but enough to cover anti-alias cracks
-                      - on hover, stroke becomes neon for a crisp highlighted edge
-                    */
-                    stroke={isHovered ? neonStroke : base}
-                    strokeWidth={isHovered ? 1.6 : 0.9}
-                    strokeLinejoin="round"
-                    vectorEffect="non-scaling-stroke"
-                    shapeRendering="geometricPrecision"
-                    className="cursor-pointer"
-                    style={{
-                      transition:
-                        "fill 140ms ease, stroke 140ms ease, stroke-width 140ms ease, opacity 140ms ease",
-                    }}
-                    onMouseEnter={(e) => {
-                      setHoveredTerritoryKey(territory.key);
+                                const rect =
+                                  e.currentTarget.ownerSVGElement?.getBoundingClientRect();
+                                if (!rect) return;
 
-                      const rect =
-                        e.currentTarget.ownerSVGElement?.getBoundingClientRect();
-                      if (!rect) return;
+                                setHoverTooltip({
+                                  x: e.clientX - rect.left,
+                                  y: e.clientY - rect.top,
+                                  title: `${territory.label}`,
+                                });
+                              }}
+                              onMouseMove={(e) => {
+                                const rect =
+                                  e.currentTarget.ownerSVGElement?.getBoundingClientRect();
+                                if (!rect) return;
 
-                      setHoverTooltip({
-                        x: e.clientX - rect.left,
-                        y: e.clientY - rect.top,
-                        title: `${territory.label} Area`,
-                      });
-                    }}
-                    onMouseMove={(e) => {
-                      const rect =
-                        e.currentTarget.ownerSVGElement?.getBoundingClientRect();
-                      if (!rect) return;
-
-                      setHoverTooltip((t) =>
-                        t
-                          ? {
-                              ...t,
-                              x: e.clientX - rect.left,
-                              y: e.clientY - rect.top,
-                            }
-                          : t,
-                      );
-                    }}
-                    onMouseLeave={() => {
-                      setHoveredTerritoryKey(null);
-                      setHoverTooltip(null);
-                    }}
-                    onClick={() => {
-                      // keep your existing behavior
-                      // e.g. open detail panel for that territory/state if you want
-                    }}
-                  />
+                                setHoverTooltip((t) =>
+                                  t
+                                    ? {
+                                        ...t,
+                                        x: e.clientX - rect.left,
+                                        y: e.clientY - rect.top,
+                                      }
+                                    : t,
+                                );
+                              }}
+                              onMouseLeave={() => {
+                                setHoveredTerritoryKey(null);
+                                setHoverTooltip(null);
+                              }}
+                              onClick={() => {
+                                // keep your existing behavior
+                              }}
+                            />
+                          );
+                        })}
+                      </g>
+                    );
+                  },
                 );
-              })
+              })()
             : null}
 
           {/* 3) STATE LABELS */}
