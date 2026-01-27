@@ -158,7 +158,7 @@ export default function StateTerritoryDetail({ stateCode, onBack }) {
                       dominantBaseline="middle"
                       className="select-none fill-white"
                       style={{
-                        fontSize: 11, // ✅ you asked ~11px
+                        fontSize: 9, // ✅ you asked ~11px
                         pointerEvents: "none",
                         opacity: 0.95,
                         fontWeight: 500,

@@ -290,7 +290,7 @@ export default function UsaTerritoryMap({ onSelectState }) {
                 textAnchor="middle"
                 dominantBaseline="middle"
                 className="select-none fill-white font-semibold"
-                style={{ fontSize: 12, pointerEvents: "none", opacity: 0.9 }}
+                style={{ fontSize: 10, pointerEvents: "none", opacity: 0.9 }}
               >
                 {code}
               </text>
