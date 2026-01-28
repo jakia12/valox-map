@@ -9,7 +9,6 @@ import {
   USPS_TO_FIPS,
   buildTerritoryIndex,
   cleanCountyName,
-  getCountyId,
   getCountyName,
   getCountyStateFips,
   getStateCodeFromFeature,
@@ -213,7 +212,7 @@ export default function UsaTerritoryMap({ onSelectState }) {
                 d={d}
                 fill={fillForState(f)}
                 stroke="#ffffff"
-                strokeWidth={1.5}
+                strokeWidth={2}
                 className={isCovered ? "cursor-pointer" : "cursor-default"}
                 onMouseEnter={() => isCovered && setHoveredState(code)}
                 onMouseLeave={() => isCovered && setHoveredState(null)}
@@ -244,80 +243,85 @@ export default function UsaTerritoryMap({ onSelectState }) {
                   territoryGroups.get(territory.key).counties.push(c);
                 });
 
+                // Lighter version of #F2AF58 for outer border
+                const outerBorderColor = "#F8D9A8";
+
                 // Render each territory as a group with unified outline
                 return Array.from(territoryGroups.values()).map(
                   ({ territory, counties: terrCounties }) => {
                     const base = territoryColor(territory) || territory.color;
                     const isHovered = hoveredTerritoryKey === territory.key;
                     const neonFill = "#FACC15";
-                    const maron = "#9B2E2E";
+
+                    // Merge all county paths into one for the territory
+                    const mergedPath = terrCounties
+                      .map((c) => path(c))
+                      .filter(Boolean)
+                      .join(" ");
 
                     return (
-                      <g
-                        key={`territory-group-${territory.key}`}
-                        filter="url(#territoryOutline)"
-                        style={{ isolation: "isolate" }}
-                      >
-                        {terrCounties.map((c) => {
-                          const id = getCountyId(c);
-                          const d = path(c);
-                          if (!d) return null;
+                      <g key={`territory-group-${territory.key}`}>
+                        {/* Outer border - drawn first */}
+                        <path
+                          d={mergedPath}
+                          fill="none"
+                          stroke={isHovered ? "#E89F2D" : outerBorderColor}
+                          strokeWidth={7}
+                          strokeLinejoin="round"
+                          strokeLinecap="round"
+                          vectorEffect="non-scaling-stroke"
+                          pointerEvents="none"
+                          style={{
+                            transition: "fill 140ms ease",
+                          }}
+                        />
 
-                          return (
-                            <path
-                              key={`fill-${id}`}
-                              d={d}
-                              fill={isHovered ? neonFill : base}
-                              fillOpacity={isHovered ? 1 : 0.97}
-                              stroke={maron}
-                              strokeWidth={0.0}
-                              strokeLinejoin="round"
-                              strokeLinecap="round"
-                              vectorEffect="non-scaling-stroke"
-                              shapeRendering="geometricPrecision"
-                              className="cursor-pointer"
-                              style={{
-                                transition:
-                                  "fill 140ms ease, opacity 140ms ease",
-                              }}
-                              onMouseEnter={(e) => {
-                                setHoveredTerritoryKey(territory.key);
+                        {/* Territory fill - single merged path with no inner borders */}
+                        <path
+                          d={mergedPath}
+                          fill={isHovered ? neonFill : base}
+                          fillOpacity={isHovered ? 1 : 0.97}
+                          stroke="none"
+                          className="cursor-pointer"
+                          style={{
+                            transition: "fill 140ms ease, opacity 140ms ease",
+                          }}
+                          onMouseEnter={(e) => {
+                            setHoveredTerritoryKey(territory.key);
 
-                                const rect =
-                                  e.currentTarget.ownerSVGElement?.getBoundingClientRect();
-                                if (!rect) return;
+                            const rect =
+                              e.currentTarget.ownerSVGElement?.getBoundingClientRect();
+                            if (!rect) return;
 
-                                setHoverTooltip({
-                                  x: e.clientX - rect.left,
-                                  y: e.clientY - rect.top,
-                                  title: `${territory.label}`,
-                                });
-                              }}
-                              onMouseMove={(e) => {
-                                const rect =
-                                  e.currentTarget.ownerSVGElement?.getBoundingClientRect();
-                                if (!rect) return;
+                            setHoverTooltip({
+                              x: e.clientX - rect.left,
+                              y: e.clientY - rect.top,
+                              title: `${territory.label}`,
+                            });
+                          }}
+                          onMouseMove={(e) => {
+                            const rect =
+                              e.currentTarget.ownerSVGElement?.getBoundingClientRect();
+                            if (!rect) return;
 
-                                setHoverTooltip((t) =>
-                                  t
-                                    ? {
-                                        ...t,
-                                        x: e.clientX - rect.left,
-                                        y: e.clientY - rect.top,
-                                      }
-                                    : t,
-                                );
-                              }}
-                              onMouseLeave={() => {
-                                setHoveredTerritoryKey(null);
-                                setHoverTooltip(null);
-                              }}
-                              onClick={() => {
-                                // keep your existing behavior
-                              }}
-                            />
-                          );
-                        })}
+                            setHoverTooltip((t) =>
+                              t
+                                ? {
+                                    ...t,
+                                    x: e.clientX - rect.left,
+                                    y: e.clientY - rect.top,
+                                  }
+                                : t,
+                            );
+                          }}
+                          onMouseLeave={() => {
+                            setHoveredTerritoryKey(null);
+                            setHoverTooltip(null);
+                          }}
+                          onClick={() => {
+                            // keep your existing behavior
+                          }}
+                        />
                       </g>
                     );
                   },
