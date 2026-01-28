@@ -176,8 +176,8 @@ export default function UsaTerritoryMap({ onSelectState }) {
                 result="expanded"
               />
               <feFlood
-                floodColor="#F8F4E8"
-                floodOpacity="0.9"
+                floodColor="#ffffff"
+                floodOpacity="0.8"
                 result="outlineColor"
               />
               <feComposite

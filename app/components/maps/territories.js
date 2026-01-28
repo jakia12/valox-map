@@ -218,13 +218,21 @@ export const TERRITORIES_BY_STATE = {
       key: "FL_ORLANDO_MIDSTATE",
       label: "Orlando Midstate",
       type: "FRANCHISE",
-      counties: ["Lake", "Polk", "Orange", "Seminole", "Osceola"],
+      counties: ["Lake", "Polk", "Orange", "Osceola"],
     },
     {
       key: "FL_FIRST_COAST",
       label: "First Coast",
       type: "FRANCHISE",
-      counties: ["Duval", "St. Johns", "Nassau", "Clay"],
+      counties: [
+        "Duval",
+        "St. Johns",
+        "Nassau",
+        "Clay",
+        "Volusia",
+        "Flagler",
+        "Seminole",
+      ],
     },
     {
       key: "FL_JUPITER",
