@@ -1,0 +1,738 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Velox Territory Map</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/topojson-client@3"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+          Cantarell, sans-serif;
+        background: #f5f5f5;
+        padding: 20px;
+      }
+
+      .map-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+      }
+
+      svg {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+
+      .tooltip {
+        position: absolute;
+        background: rgba(0, 0, 0, 0.9);
+        color: white;
+        padding: 12px 16px;
+        border-radius: 8px;
+        font-size: 14px;
+        pointer-events: none;
+        z-index: 1000;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      }
+
+      .tooltip-title {
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+
+      .tooltip-subtitle {
+        font-size: 12px;
+        color: #facc15;
+      }
+
+      .legend {
+        display: flex;
+        gap: 20px;
+        justify-content: center;
+        margin-top: 20px;
+        padding: 15px;
+        background: #f9f9f9;
+        border-radius: 8px;
+      }
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+      }
+
+      .legend-color {
+        width: 20px;
+        height: 20px;
+        border-radius: 4px;
+      }
+
+      .cursor-pointer {
+        cursor: pointer;
+      }
+
+      /* Modal Styles */
+      .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(8px);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+
+      .modal-overlay.active {
+        display: flex;
+      }
+
+      .modal-content {
+        background: white;
+        border-radius: 16px;
+        max-width: 600px;
+        width: 100%;
+        max-height: 80vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        animation: modalSlideIn 0.3s ease;
+      }
+
+      @keyframes modalSlideIn {
+        from {
+          opacity: 0;
+          transform: translateY(20px) scale(0.95);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 24px;
+        border-bottom: 1px solid #e2e8f0;
+        background: linear-gradient(to right, #f8fafc, white);
+      }
+
+      .modal-title {
+        font-size: 24px;
+        font-weight: 700;
+        color: #1e293b;
+        margin: 0;
+      }
+
+      .modal-close {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .modal-close:hover {
+        background: #f1f5f9;
+        border-color: #cbd5e1;
+        transform: scale(1.1);
+      }
+
+      .modal-body {
+        padding: 24px;
+      }
+
+      .territory-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+
+      .territory-item {
+        padding: 16px;
+        margin-bottom: 12px;
+        border-radius: 12px;
+        border: 2px solid #e2e8f0;
+        background: #f8fafc;
+        transition: all 0.2s;
+      }
+
+      .territory-item:hover {
+        border-color: #facc15;
+        background: #fffbeb;
+        transform: translateX(4px);
+      }
+
+      .territory-name {
+        font-size: 18px;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 8px;
+      }
+
+      .territory-type {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+
+      .territory-counties {
+        font-size: 14px;
+        color: #64748b;
+        margin-bottom: 8px;
+      }
+
+      .territory-link {
+        display: inline-block;
+        color: #2563eb;
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 500;
+        transition: color 0.2s;
+      }
+
+      .territory-link:hover {
+        color: #1d4ed8;
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="map-container">
+      <div id="map"></div>
+      <div class="legend">
+        <div class="legend-item">
+          <div class="legend-color" style="background: #f2af58"></div>
+          <span>Corporate</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background: #9b2e2e"></div>
+          <span>Franchise</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background: #96cb91"></div>
+          <span>Coming Soon</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="tooltip" id="tooltip" style="display: none"></div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title" id="modal-title">State Territories</h2>
+          <button class="modal-close" onclick="closeModal()" aria-label="Close">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 20 20"
+              fill="none"
+              stroke="currentColor"
+            >
+              <path
+                d="M15 5L5 15M5 5l10 10"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p style="color: #64748b; font-size: 14px; margin-bottom: 16px">
+            Explore territories and counties
+          </p>
+          <div
+            id="state-map-container"
+            style="
+              background: linear-gradient(to bottom right, #f8fafc, white);
+              border: 1px solid #e2e8f0;
+              border-radius: 12px;
+              padding: 16px;
+            "
+          >
+            <!-- SVG map will be inserted here -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Territory data - will be loaded from territories.json
+      let TERRITORIES_BY_STATE = {};
+
+      // Modal functions
+      function openModal(stateCode) {
+        const modal = document.getElementById("modal");
+        const modalTitle = document.getElementById("modal-title");
+        const mapContainer = document.getElementById("state-map-container");
+
+        modalTitle.textContent = `${stateCode} Territory Details`;
+
+        // Clear previous map
+        mapContainer.innerHTML = "";
+
+        // Show modal
+        modal.classList.add("active");
+        document.body.style.overflow = "hidden";
+
+        // Load counties and render state map
+        d3.json(
+          "https://cdn.jsdelivr.net/npm/us-atlas@3/counties-10m.json",
+        ).then((us) => {
+          const allCounties = topojson.feature(us, us.objects.counties);
+          const stateFips = USPS_TO_FIPS[stateCode];
+
+          // Filter counties for this state
+          const stateCounties = allCounties.features.filter(
+            (c) => String(c.id).slice(0, 2) === stateFips,
+          );
+
+          if (stateCounties.length === 0) {
+            mapContainer.innerHTML =
+              '<p style="padding: 40px; text-align: center; color: #64748b;">No county data available for this state</p>';
+            return;
+          }
+
+          // Create SVG
+          const width = 800;
+          const height = 600;
+
+          const svg = d3
+            .select("#state-map-container")
+            .append("svg")
+            .attr("viewBox", `0 0 ${width} ${height}`)
+            .style("width", "100%")
+            .style("height", "auto");
+
+          // Create projection fitted to state
+          const projection = d3.geoAlbersUsa().fitSize([width, height], {
+            type: "FeatureCollection",
+            features: stateCounties,
+          });
+
+          const path = d3.geoPath().projection(projection);
+
+          // Build territory index for this state
+          const territoryIndex = new Map();
+          const territories = TERRITORIES_BY_STATE[stateCode] || [];
+          territories.forEach((t) => {
+            t.counties.forEach((c) => {
+              territoryIndex.set(String(c).trim().toLowerCase(), t);
+            });
+          });
+
+          // Render counties
+          stateCounties.forEach((county) => {
+            const countyName = county.properties.name
+              .replace(/ County$/i, "")
+              .trim()
+              .toLowerCase();
+
+            const territory = territoryIndex.get(countyName);
+            const fillColor = territory
+              ? territory.type === "FRANCHISE"
+                ? "#9B2E2E"
+                : territory.type === "GREEN"
+                  ? "#96CB91"
+                  : "#F2AF58"
+              : "#88A4BC";
+
+            // County fill
+            svg
+              .append("path")
+              .datum(county)
+              .attr("d", path)
+              .attr("fill", fillColor)
+              .attr("fill-opacity", 0.95)
+              .attr("stroke", fillColor)
+              .attr("stroke-width", 0.8);
+
+            // County border
+            svg
+              .append("path")
+              .datum(county)
+              .attr("d", path)
+              .attr("fill", "transparent")
+              .attr("stroke", "rgba(255,255,255,0.9)")
+              .attr("stroke-width", 1.1)
+              .attr("pointer-events", "none");
+
+            // County label
+            const centroid = path.centroid(county);
+            if (centroid && !isNaN(centroid[0]) && !isNaN(centroid[1])) {
+              const displayName = county.properties.name.replace(
+                / County$/i,
+                "",
+              );
+              svg
+                .append("text")
+                .attr("x", centroid[0])
+                .attr("y", centroid[1])
+                .attr("text-anchor", "middle")
+                .attr("dominant-baseline", "middle")
+                .style("font-size", "9px")
+                .style("font-weight", "500")
+                .style("fill", "#ffffff")
+                .style("opacity", "0.95")
+                .style("pointer-events", "none")
+                .text(displayName);
+            }
+          });
+        });
+      }
+
+      function closeModal() {
+        const modal = document.getElementById("modal");
+        modal.classList.remove("active");
+        document.body.style.overflow = "";
+      }
+
+      // Close modal on ESC key
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          closeModal();
+        }
+      });
+
+      // Close modal when clicking outside
+      document.getElementById("modal").addEventListener("click", (e) => {
+        if (e.target.id === "modal") {
+          closeModal();
+        }
+      });
+
+      // Load territories from JSON file
+      fetch("territories.json")
+        .then((response) => response.json())
+        .then((data) => {
+          TERRITORIES_BY_STATE = data;
+          initMap();
+        })
+        .catch((error) => {
+          console.error("Error loading territories:", error);
+          // Fallback to inline data if JSON fails
+          loadInlineData();
+          initMap();
+        });
+
+      function loadInlineData() {
+        // This will be populated with default data during plugin activation
+        TERRITORIES_BY_STATE = window.VELOX_TERRITORIES || {};
+      }
+
+      // Color mapping
+      const COLORS = {
+        corporate: "#F2AF58",
+        franchise: "#9B2E2E",
+        green: "#96CB91",
+      };
+
+      // FIPS to USPS mapping
+      const FIPS_TO_USPS = {
+        "01": "AL",
+        "02": "AK",
+        "04": "AZ",
+        "05": "AR",
+        "06": "CA",
+        "08": "CO",
+        "09": "CT",
+        10: "DE",
+        11: "DC",
+        12: "FL",
+        13: "GA",
+        15: "HI",
+        16: "ID",
+        17: "IL",
+        18: "IN",
+        19: "IA",
+        20: "KS",
+        21: "KY",
+        22: "LA",
+        23: "ME",
+        24: "MD",
+        25: "MA",
+        26: "MI",
+        27: "MN",
+        28: "MS",
+        29: "MO",
+        30: "MT",
+        31: "NE",
+        32: "NV",
+        33: "NH",
+        34: "NJ",
+        35: "NM",
+        36: "NY",
+        37: "NC",
+        38: "ND",
+        39: "OH",
+        40: "OK",
+        41: "OR",
+        42: "PA",
+        44: "RI",
+        45: "SC",
+        46: "SD",
+        47: "TN",
+        48: "TX",
+        49: "UT",
+        50: "VT",
+        51: "VA",
+        53: "WA",
+        54: "WV",
+        55: "WI",
+        56: "WY",
+      };
+
+      const USPS_TO_FIPS = Object.fromEntries(
+        Object.entries(FIPS_TO_USPS).map(([fips, usps]) => [
+          usps,
+          fips.padStart(2, "0"),
+        ]),
+      );
+
+      function initMap() {
+        const width = 960;
+        const height = 600;
+
+        const svg = d3
+          .select("#map")
+          .append("svg")
+          .attr("viewBox", `0 0 ${width} ${height}`);
+
+        const projection = d3
+          .geoAlbersUsa()
+          .translate([width / 2, height / 2])
+          .scale(1200);
+
+        const path = d3.geoPath().projection(projection);
+
+        const tooltip = d3.select("#tooltip");
+
+        // Build territory index
+        const territoryIndex = new Map();
+        for (const [usps, territories] of Object.entries(
+          TERRITORIES_BY_STATE,
+        )) {
+          const fips = USPS_TO_FIPS[usps];
+          if (!fips) continue;
+
+          const m = new Map();
+          for (const t of territories) {
+            for (const c of t.counties) {
+              m.set(String(c).trim().toLowerCase(), t);
+            }
+          }
+          territoryIndex.set(String(fips).padStart(2, "0"), m);
+        }
+
+        // Helper: Check if state has any coverage
+        function hasAnyCoverageForStateFips(stateFips) {
+          const m = territoryIndex.get(String(stateFips).padStart(2, "0"));
+          return m && m.size > 0;
+        }
+
+        // Load and render map
+        Promise.all([
+          d3.json("https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json"),
+          d3.json("https://cdn.jsdelivr.net/npm/us-atlas@3/counties-10m.json"),
+        ]).then(([statesData, countiesData]) => {
+          const states = topojson.feature(
+            statesData,
+            statesData.objects.states,
+          );
+          const counties = topojson.feature(
+            countiesData,
+            countiesData.objects.counties,
+          );
+
+          // 1) RENDER ALL STATES AS BACKGROUND
+          states.features.forEach((state) => {
+            const stateFips = String(state.id).padStart(2, "0");
+            const stateCode = FIPS_TO_USPS[stateFips];
+
+            // Skip Alaska for better fit
+            if (stateCode === "AK") return;
+
+            const isCovered = hasAnyCoverageForStateFips(stateFips);
+            const fillColor = isCovered ? "#334155" : "#88A4BC";
+
+            const stateElement = svg
+              .append("path")
+              .datum(state)
+              .attr("d", path)
+              .attr("fill", fillColor)
+              .attr("stroke", "#ffffff")
+              .attr("stroke-width", 2)
+              .attr(
+                "class",
+                isCovered
+                  ? "state-background cursor-pointer"
+                  : "state-background",
+              );
+
+            // Add click handler for covered states
+            if (isCovered) {
+              stateElement.on("click", function () {
+                openModal(stateCode);
+              });
+            }
+          });
+
+          // 2) GROUP COUNTIES BY TERRITORY
+          const territoriesByKey = new Map();
+
+          counties.features.forEach((county) => {
+            const stateFips = String(county.id).slice(0, 2);
+            const countyName = county.properties.name
+              .replace(/ County$/i, "")
+              .trim()
+              .toLowerCase();
+
+            const stateMap = territoryIndex.get(stateFips);
+            if (stateMap) {
+              const territory = stateMap.get(countyName);
+              if (territory) {
+                if (!territoriesByKey.has(territory.key)) {
+                  territoriesByKey.set(territory.key, {
+                    territory,
+                    counties: [],
+                  });
+                }
+                territoriesByKey.get(territory.key).counties.push(county);
+              }
+            }
+          });
+
+          // 3) RENDER TERRITORIES ON TOP
+          territoriesByKey.forEach(({ territory, counties: terrCounties }) => {
+            const color =
+              territory.type === "FRANCHISE"
+                ? COLORS.franchise
+                : territory.type === "GREEN"
+                  ? COLORS.green
+                  : COLORS.corporate;
+
+            const g = svg.append("g").attr("class", "territory-group");
+
+            // Merge all county paths
+            const mergedPath = terrCounties
+              .map((c) => path(c))
+              .filter(Boolean)
+              .join(" ");
+
+            // Outer border (lighter color)
+            const outerBorderColor = "#F8D9A8";
+
+            g.append("path")
+              .attr("d", mergedPath)
+              .attr("fill", "none")
+              .attr("stroke", outerBorderColor)
+              .attr("stroke-width", 7)
+              .attr("stroke-linejoin", "round")
+              .attr("stroke-linecap", "round")
+              .attr("pointer-events", "none")
+              .attr("class", "territory-outer-border");
+
+            // Territory fill
+            g.append("path")
+              .attr("d", mergedPath)
+              .attr("fill", color)
+              .attr("fill-opacity", 0.97)
+              .attr("stroke", "none")
+              .attr("class", "cursor-pointer territory-fill")
+              .on("mouseenter", function (event) {
+                d3.select(this).attr("fill", "#FACC15").attr("fill-opacity", 1);
+
+                // Update outer border on hover
+                d3.select(this.parentNode)
+                  .select(".territory-outer-border")
+                  .attr("stroke", "#E89F2D");
+
+                tooltip
+                  .style("display", "block")
+                  .style("left", event.pageX + 10 + "px")
+                  .style("top", event.pageY - 10 + "px").html(`
+                    <div class="tooltip-title">${territory.label}</div>
+                    <div class="tooltip-subtitle">Click for details</div>
+                  `);
+              })
+              .on("mousemove", function (event) {
+                tooltip
+                  .style("left", event.pageX + 10 + "px")
+                  .style("top", event.pageY - 10 + "px");
+              })
+              .on("mouseleave", function () {
+                d3.select(this).attr("fill", color).attr("fill-opacity", 0.97);
+
+                // Reset outer border
+                d3.select(this.parentNode)
+                  .select(".territory-outer-border")
+                  .attr("stroke", outerBorderColor);
+
+                tooltip.style("display", "none");
+              })
+              .on("click", function () {
+                if (territory.url) {
+                  window.location.href = territory.url;
+                }
+              });
+          });
+
+          // 4) ADD STATE LABELS
+          states.features.forEach((state) => {
+            const stateFips = String(state.id).padStart(2, "0");
+            const stateCode = FIPS_TO_USPS[stateFips];
+
+            // Skip Alaska
+            if (stateCode === "AK") return;
+
+            const centroid = path.centroid(state);
+            if (centroid && !isNaN(centroid[0]) && !isNaN(centroid[1])) {
+              svg
+                .append("text")
+                .attr("x", centroid[0])
+                .attr("y", centroid[1])
+                .attr("text-anchor", "middle")
+                .attr("dominant-baseline", "middle")
+                .attr("class", "state-label")
+                .style("font-size", "10px")
+                .style("font-weight", "600")
+                .style("fill", "#ffffff")
+                .style("opacity", "0.9")
+                .style("pointer-events", "none")
+                .text(stateCode || "");
+            }
+          });
+        });
+      }
+    </script>
+  </body>
+</html>
