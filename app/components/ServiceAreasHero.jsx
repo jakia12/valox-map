@@ -192,7 +192,7 @@ export default function ServiceAreasHero() {
                       </button>
                       {/* Mobile Dropdown Items */}
                       {mobileExpandedItem === index && (
-                        <ul className="list-none m-0 p-0 bg-[#455a64]">
+                        <ul className="list-none m-0 p-0 bg-[#3A4A54]">
                           {item.dropdownItems.map((dropItem, dropIndex) => (
                             <li key={dropIndex}>
                               <Link

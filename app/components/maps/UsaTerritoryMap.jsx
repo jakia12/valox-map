@@ -175,8 +175,7 @@ export default function UsaTerritoryMap() {
               >
                 <feMorphology
                   operator="dilate"
-                  radius="5"
-                  radius="1.2"
+                  radius="4"
                   in="SourceAlpha"
                   result="expanded"
                 />
@@ -218,7 +217,7 @@ export default function UsaTerritoryMap() {
                   d={d}
                   fill={fillForState(f)}
                   stroke="#ffffff"
-                  strokeWidth={2}
+                  strokeWidth={3}
                   className={isCovered ? "cursor-pointer" : "cursor-default"}
                   onMouseEnter={() => isCovered && setHoveredState(code)}
                   onMouseLeave={() => isCovered && setHoveredState(null)}
@@ -268,22 +267,7 @@ export default function UsaTerritoryMap() {
 
                       return (
                         <g key={`territory-group-${territory.key}`}>
-                          {/* Outer border - drawn first */}
-                          <path
-                            d={mergedPath}
-                            fill="none"
-                            stroke={isHovered ? "#E89F2D" : outerBorderColor}
-                            strokeWidth={7}
-                            strokeLinejoin="round"
-                            strokeLinecap="round"
-                            vectorEffect="non-scaling-stroke"
-                            pointerEvents="none"
-                            style={{
-                              transition: "stroke 140ms ease",
-                            }}
-                          />
-
-                          {/* Territory fill - single merged path with no inner borders */}
+                          {/* Territory fill only, no borders */}
                           <path
                             d={mergedPath}
                             fill={isHovered ? neonFill : base}

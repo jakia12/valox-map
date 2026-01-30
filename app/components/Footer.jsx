@@ -115,7 +115,7 @@ export default function Footer() {
                 href="/appraisals/ppm-removal"
                 className="text-[#3a4a54] no-underline text-base hover:text-[#f9a12f] transition-colors"
               >
-                PPI Removal
+                PMI Removal
               </Link>
             </li>
           </ul>

@@ -120,7 +120,7 @@ export default function StateTerritoryDetail({ stateCode, onBack }) {
                       fill={fill}
                       opacity={0.95}
                       stroke={fill}
-                      strokeWidth={0.8}
+                      strokeWidth={10}
                       strokeLinejoin="round"
                       strokeLinecap="round"
                     />
@@ -141,7 +141,7 @@ export default function StateTerritoryDetail({ stateCode, onBack }) {
                       d={d}
                       fill="transparent"
                       stroke="rgba(255,255,255,0.9)"
-                      strokeWidth={1.1}
+                      strokeWidth={7}
                       strokeLinejoin="round"
                       strokeLinecap="round"
                       pointerEvents="none"

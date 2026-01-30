@@ -20,9 +20,11 @@ export default function CTASection() {
 
       <style jsx>{`
         .cta-section {
-          background: linear-gradient(135deg, #e8e8e8 0%, #f5f5f5 100%);
-          padding: 4rem 2rem;
+          background: #ecf1f1;
+          padding: 4rem 2rem 6rem 2rem;
           text-align: center;
+          position: relative;
+          clip-path: polygon(0 0, 100% 0, 100% calc(100% - 50px), 0 100%);
         }
 
         .cta-container {
