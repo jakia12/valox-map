@@ -6,6 +6,7 @@ import { useState } from "react";
 export default function ServiceAreasHero() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState(null);
+  const [mobileExpandedItem, setMobileExpandedItem] = useState(null);
 
   const navItems = [
     { label: "About Us", href: "/about" },
@@ -46,19 +47,23 @@ export default function ServiceAreasHero() {
     { label: "Contact", href: "/contact" },
   ];
 
+  const toggleMobileDropdown = (index) => {
+    setMobileExpandedItem(mobileExpandedItem === index ? null : index);
+  };
+
   return (
     <div
       className="relative w-full h-[500px] md:h-[500px] sm:h-[350px] bg-cover bg-center bg-no-repeat overflow-visible"
       style={{ backgroundImage: "url(/heroBg.jpg)" }}
     >
       {/* Dark overlay */}
-      <div className="absolute inset-0 bg-black/20 z-[1]"></div>
+      <div className="absolute inset-0 bg-black/20 z-1"></div>
 
       {/* Navigation */}
-      <nav className="relative z-[100] py-4">
+      <nav className="relative z-100 py-4">
         <div className="max-w-[1400px] mx-auto px-8 md:px-4 flex items-center justify-between">
           {/* Logo */}
-          <div className="flex-shrink-0 relative z-[101]">
+          <div className="shrink-0 relative z-101">
             <Link href="/">
               <img
                 src="/hl.png"
@@ -91,7 +96,7 @@ export default function ServiceAreasHero() {
 
                 {/* Desktop Dropdown */}
                 {item.hasDropdown && activeDropdown === index && (
-                  <div className="absolute top-full left-0 mt-2 bg-white rounded shadow-xl min-w-[240px] py-2 z-[200]">
+                  <div className="absolute top-full left-0 mt-2 bg-white rounded shadow-xl min-w-[240px] py-2 z-200">
                     {item.dropdownItems.map((dropItem, dropIndex) => (
                       <Link
                         key={dropIndex}
@@ -115,7 +120,7 @@ export default function ServiceAreasHero() {
           </div>
 
           {/* Mobile Menu Toggle & Login */}
-          <div className="lg:hidden flex items-center gap-3 relative z-[101]">
+          <div className="lg:hidden flex items-center gap-3 relative z-101">
             {/* Mobile Login Button - Always visible */}
             <button className="bg-white/90 text-[#1a1a1a] border-none px-4 py-1.5 rounded text-sm font-medium">
               Login
@@ -155,7 +160,7 @@ export default function ServiceAreasHero() {
 
         {/* Mobile Menu Dropdown */}
         {mobileMenuOpen && (
-          <div className="lg:hidden absolute top-full left-0 right-0 bg-[#546e7a] z-[99] shadow-xl">
+          <div className="lg:hidden absolute top-full left-0 right-0 bg-[#546e7a] z-99 shadow-xl">
             {/* Menu Items */}
             <ul className="list-none m-0 p-0">
               {navItems.map((item, index) => (
@@ -163,28 +168,59 @@ export default function ServiceAreasHero() {
                   key={index}
                   className="border-b border-white/10 last:border-b-0"
                 >
-                  <Link
-                    href={item.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`block px-6 py-4 text-white no-underline text-[18px] transition-all duration-300 flex items-center justify-between ${
-                      item.active
-                        ? "text-[#f9a12f] font-medium"
-                        : "hover:bg-white/5"
-                    }`}
-                  >
-                    <span>{item.label}</span>
-                    {item.hasDropdown && (
-                      <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 16 16"
-                        fill="currentColor"
-                        className="opacity-60"
+                  {item.hasDropdown ? (
+                    // Dropdown item
+                    <>
+                      <button
+                        onClick={() => toggleMobileDropdown(index)}
+                        className={`w-full text-left px-6 py-4 text-white text-[18px] transition-all duration-300 flex items-center justify-between bg-transparent border-none cursor-pointer ${
+                          item.active
+                            ? "text-[#f9a12f] font-medium"
+                            : "hover:bg-white/5"
+                        }`}
                       >
-                        <path d="M4.427 9.573l3.396-3.396a.25.25 0 01.354 0l3.396 3.396a.25.25 0 01-.177.427H4.604a.25.25 0 01-.177-.427z" />
-                      </svg>
-                    )}
-                  </Link>
+                        <span>{item.label}</span>
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 16 16"
+                          fill="currentColor"
+                          className={`opacity-60 transition-transform duration-300 ${mobileExpandedItem === index ? "rotate-180" : ""}`}
+                        >
+                          <path d="M4.427 9.573l3.396-3.396a.25.25 0 01.354 0l3.396 3.396a.25.25 0 01-.177.427H4.604a.25.25 0 01-.177-.427z" />
+                        </svg>
+                      </button>
+                      {/* Mobile Dropdown Items */}
+                      {mobileExpandedItem === index && (
+                        <ul className="list-none m-0 p-0 bg-[#455a64]">
+                          {item.dropdownItems.map((dropItem, dropIndex) => (
+                            <li key={dropIndex}>
+                              <Link
+                                href={dropItem.href}
+                                onClick={() => setMobileMenuOpen(false)}
+                                className="block px-10 py-3 text-white/90 no-underline text-[16px] transition-all duration-300 hover:bg-white/5 hover:text-white"
+                              >
+                                {dropItem.label}
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </>
+                  ) : (
+                    // Regular item
+                    <Link
+                      href={item.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`block px-6 py-4 text-white no-underline text-[18px] transition-all duration-300 ${
+                        item.active
+                          ? "text-[#f9a12f] font-medium"
+                          : "hover:bg-white/5"
+                      }`}
+                    >
+                      {item.label}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>
@@ -193,7 +229,7 @@ export default function ServiceAreasHero() {
       </nav>
 
       {/* Hero Content */}
-      <div className="relative z-[5] flex items-center justify-center h-[calc(100%-80px)]">
+      <div className="relative z-5 flex items-center justify-center h-[calc(100%-80px)]">
         <h1
           className="text-white text-[4rem] md:text-[3rem] sm:text-[2.5rem] font-bold m-0 text-center px-4"
           style={{
