@@ -101,34 +101,67 @@ export default function StateTerritoryDetail({ stateCode, onBack }) {
         {/* MAP */}
         <div className="lg:col-span-10 rounded-xl border border-slate-200 bg-white p-3">
           <svg viewBox={`0 0 ${width} ${height}`} className="h-auto w-full">
-            {/* fills */}
+            {/* Territory fills - grouped and merged */}
             {path
-              ? counties.map((c) => {
-                  const id = getCountyId(c);
-                  const d = path(c);
-                  if (!d) return null;
+              ? (() => {
+                  // Group counties by territory
+                  const territoryGroups = new Map();
 
-                  const territory = getTerritoryForCounty(c);
-                  const fill = territory
-                    ? territoryColor(territory)
-                    : "#88A4BC";
+                  counties.forEach((c) => {
+                    const territory = getTerritoryForCounty(c);
+                    if (!territory) {
+                      // Uncovered counties
+                      if (!territoryGroups.has("uncovered")) {
+                        territoryGroups.set("uncovered", {
+                          territory: null,
+                          counties: [],
+                        });
+                      }
+                      territoryGroups.get("uncovered").counties.push(c);
+                      return;
+                    }
 
-                  return (
-                    <path
-                      key={`fill-${id}`}
-                      d={d}
-                      fill={fill}
-                      opacity={0.95}
-                      stroke={fill}
-                      strokeWidth={10}
-                      strokeLinejoin="round"
-                      strokeLinecap="round"
-                    />
+                    if (!territoryGroups.has(territory.key)) {
+                      territoryGroups.set(territory.key, {
+                        territory,
+                        counties: [],
+                      });
+                    }
+                    territoryGroups.get(territory.key).counties.push(c);
+                  });
+
+                  // Render each territory as merged path
+                  return Array.from(territoryGroups.values()).map(
+                    ({ territory, counties: terrCounties }) => {
+                      const fill = territory
+                        ? territoryColor(territory)
+                        : "#88A4BC";
+
+                      // Merge all county paths into one
+                      const mergedPath = terrCounties
+                        .map((c) => path(c))
+                        .filter(Boolean)
+                        .join(" ");
+
+                      return (
+                        <path
+                          key={`territory-${territory?.key || "uncovered"}`}
+                          d={mergedPath}
+                          fill={fill}
+                          fillOpacity={0.95}
+                          stroke={fill}
+                          strokeWidth={0}
+                          strokeLinejoin="round"
+                          strokeLinecap="round"
+                          pointerEvents="none"
+                        />
+                      );
+                    },
                   );
-                })
+                })()
               : null}
 
-            {/* ✅ county borders ONLY here */}
+            {/* County borders */}
             {path
               ? counties.map((c) => {
                   const id = getCountyId(c);
@@ -141,7 +174,7 @@ export default function StateTerritoryDetail({ stateCode, onBack }) {
                       d={d}
                       fill="transparent"
                       stroke="rgba(255,255,255,0.9)"
-                      strokeWidth={7}
+                      strokeWidth={0}
                       strokeLinejoin="round"
                       strokeLinecap="round"
                       pointerEvents="none"
@@ -149,6 +182,22 @@ export default function StateTerritoryDetail({ stateCode, onBack }) {
                   );
                 })
               : null}
+
+            {/* State outline border */}
+            {path && counties.length > 0 ? (
+              <path
+                d={counties
+                  .map((c) => path(c))
+                  .filter(Boolean)
+                  .join(" ")}
+                fill="none"
+                stroke="#ffffff"
+                strokeWidth={0}
+                strokeLinejoin="round"
+                strokeLinecap="round"
+                pointerEvents="none"
+              />
+            ) : null}
 
             {/* county labels */}
             {path

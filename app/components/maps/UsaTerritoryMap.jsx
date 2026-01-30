@@ -267,15 +267,19 @@ export default function UsaTerritoryMap() {
 
                       return (
                         <g key={`territory-group-${territory.key}`}>
-                          {/* Territory fill only, no borders */}
+                          {/* Territory fill with thin rounded stroke */}
                           <path
                             d={mergedPath}
-                            fill={isHovered ? neonFill : base}
+                            fill={isHovered ? "#E89F2D" : base}
                             fillOpacity={isHovered ? 1 : 0.97}
-                            stroke="none"
+                            stroke={isHovered ? "#E89F2D" : base}
+                            strokeWidth={isHovered ? 1 : 2}
+                            strokeLinejoin="round"
+                            strokeLinecap="round"
                             className="cursor-pointer"
                             style={{
-                              transition: "fill 140ms ease, opacity 140ms ease",
+                              transition:
+                                "fill 140ms ease, fill-opacity 140ms ease, stroke 140ms ease",
                             }}
                             onMouseEnter={(e) => {
                               setHoveredTerritoryKey(territory.key);
