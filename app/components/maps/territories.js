@@ -233,7 +233,7 @@ export const TERRITORIES_BY_STATE = {
     },
     {
       key: "FL_ORLANDO",
-      label: "Orlando",
+      label: "Orlando Midstate",
       type: "FRANCHISE",
       counties: ["Lake", "Polk", "Orange", "Osceola"],
       url: "https://veloxval.com/service-areas/florida/orlando/",
