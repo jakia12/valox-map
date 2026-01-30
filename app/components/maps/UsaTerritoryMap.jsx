@@ -142,7 +142,7 @@ export default function UsaTerritoryMap() {
   return (
     <>
       <div className="w-full">
-        <div className="relative overflow-hidden bg-white rounded-xl shadow-sm">
+        <div className="relative overflow-hidden bg-white ">
           {/* Tooltip */}
           {hoverTooltip ? (
             <div
