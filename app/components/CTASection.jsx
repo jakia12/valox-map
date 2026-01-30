@@ -24,7 +24,6 @@ export default function CTASection() {
           padding: 4rem 2rem 6rem 2rem;
           text-align: center;
           position: relative;
-          clip-path: polygon(0 0, 100% 0, 100% calc(100% - 50px), 0 100%);
         }
 
         .cta-container {

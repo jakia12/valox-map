@@ -217,7 +217,7 @@ export default function UsaTerritoryMap() {
                   d={d}
                   fill={fillForState(f)}
                   stroke="#ffffff"
-                  strokeWidth={3}
+                  strokeWidth={2}
                   className={isCovered ? "cursor-pointer" : "cursor-default"}
                   onMouseEnter={() => isCovered && setHoveredState(code)}
                   onMouseLeave={() => isCovered && setHoveredState(null)}
